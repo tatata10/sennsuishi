@@ -12,8 +12,14 @@ import '../models/question_model.dart';
 class QuizScreen extends ConsumerStatefulWidget {
   final List<Question>? questions;
   final String? title;
+  final bool isInfiniteMode;
 
-  const QuizScreen({super.key, this.questions, this.title});
+  const QuizScreen({
+    super.key,
+    this.questions,
+    this.title,
+    this.isInfiniteMode = false,
+  });
 
   @override
   ConsumerState<QuizScreen> createState() => _QuizScreenState();
@@ -22,10 +28,12 @@ class QuizScreen extends ConsumerStatefulWidget {
 class _QuizScreenState extends ConsumerState<QuizScreen> {
   void initState() {
     super.initState();
-    // Load questions from parameters or use mock data
     Future.microtask(() {
       if (widget.questions != null && widget.questions!.isNotEmpty) {
-        ref.read(quizProvider.notifier).loadQuestions(widget.questions!);
+        ref.read(quizProvider.notifier).loadQuestions(
+              widget.questions!,
+              infiniteMode: widget.isInfiniteMode,
+            );
       }
     });
   }
@@ -33,7 +41,8 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
   @override
   Widget build(BuildContext context) {
     ref.listen(quizProvider, (previous, next) {
-      if (next.isCompleted) {
+      // 無限モードでは結果画面に遷移しない
+      if (next.isCompleted && !next.isInfiniteMode) {
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
             builder: (_) => ResultScreen(

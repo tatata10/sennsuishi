@@ -48,46 +48,74 @@ class _CategorySelectionScreenState extends State<CategorySelectionScreen> {
   ];
 
   Future<void> _startCategoryQuiz(String categoryName) async {
-    List<Question> filteredQuestions = [];
+    List<Question> questions = [];
 
-    // 1. Cloudから特定のカテゴリーの問題を直接取得
     try {
-      filteredQuestions =
+      questions =
           await SupabaseService.instance.getQuestionsByCategory(categoryName);
-    } catch (e) {
-      print(
-          'Cloud loading failed for category, falling back to all-asset search');
-    }
+    } catch (_) {}
 
-    // 2. Cloudが空または失敗した場合は、ローカルの全Assetから探す（旧ロジック）
-    if (filteredQuestions.isEmpty) {
+    if (questions.isEmpty) {
       final availableYears = await QuestionLoader.getAvailableYears();
       List<Question> allQuestions = [];
       for (final year in availableYears) {
-        final yearQuestions = await QuestionLoader.loadQuestionsByYear(year);
-        allQuestions.addAll(yearQuestions);
+        allQuestions.addAll(await QuestionLoader.loadQuestionsByYear(year));
       }
-      filteredQuestions =
-          QuestionLoader.filterByCategory(allQuestions, categoryName);
+      questions = QuestionLoader.filterByCategory(allQuestions, categoryName);
     }
 
-    if (filteredQuestions.isEmpty) {
+    if (questions.isEmpty) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('$categoryNameの問題が見つかりませんでした')),
+        SnackBar(content: Text('${categoryName}の問題が見つかりませんでした')),
       );
       return;
     }
 
-    // ランダムに並び替えて出題（オプション）
-    filteredQuestions.shuffle();
+    questions.shuffle();
 
     if (!mounted) return;
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => QuizScreen(
-          questions: filteredQuestions.take(10).toList(), // 10問ずつ
-          title: '$categoryName 対策',
+          questions: questions.take(10).toList(),
+          title: '分野別 $categoryName',
+        ),
+      ),
+    );
+  }
+
+  /// 全分野ごちゃまぜランダム
+  Future<void> _startAllMixQuiz() async {
+    List<Question> questions = [];
+
+    try {
+      questions = await SupabaseService.instance.getQuestions();
+    } catch (_) {}
+
+    if (questions.isEmpty) {
+      final availableYears = await QuestionLoader.getAvailableYears();
+      for (final year in availableYears) {
+        questions.addAll(await QuestionLoader.loadQuestionsByYear(year));
+      }
+    }
+
+    if (questions.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('問題の読み込みに失敗しました')),
+      );
+      return;
+    }
+
+    questions.shuffle();
+
+    if (!mounted) return;
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => QuizScreen(
+          questions: questions.take(10).toList(),
+          title: '分野別 全分野ランダム',
         ),
       ),
     );
@@ -99,55 +127,65 @@ class _CategorySelectionScreenState extends State<CategorySelectionScreen> {
       appBar: AppBar(
         title: const Text('分野別 対策'),
       ),
-      body: ListView.builder(
+      body: ListView(
         padding: const EdgeInsets.all(16),
-        itemCount: categories.length,
-        itemBuilder: (context, index) {
-          final category = categories[index];
-          return Card(
-            elevation: 2,
-            margin: const EdgeInsets.only(bottom: 16),
+        children: [
+          // ─── 全分野ランダムカード（先頭） ───
+          Card(
+            elevation: 3,
+            margin: const EdgeInsets.only(bottom: 20),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
             ),
             child: InkWell(
-              onTap: () => _startCategoryQuiz(category['name']),
+              onTap: _startAllMixQuiz,
               borderRadius: BorderRadius.circular(16),
-              child: Padding(
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  gradient: LinearGradient(
+                    colors: [
+                      Colors.deepPurple.shade400,
+                      Colors.indigo.shade400,
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                ),
                 padding: const EdgeInsets.all(20),
                 child: Row(
                   children: [
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: category['color'].withValues(alpha: 0.1),
+                        color: Colors.white.withOpacity(0.2),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: Icon(
-                        category['icon'],
-                        color: category['color'],
+                      child: const Icon(
+                        Icons.shuffle,
+                        color: Colors.white,
                         size: 32,
                       ),
                     ),
                     const SizedBox(width: 20),
-                    Expanded(
+                    const Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            category['name'],
-                            style: const TextStyle(
+                            '全分野ランダム',
+                            style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
-                              color: AppTheme.navy,
+                              color: Colors.white,
                             ),
                           ),
-                          const SizedBox(height: 4),
+                          SizedBox(height: 4),
                           Text(
-                            category['description'],
+                            '全分野からランダムに10問出題',
                             style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey.shade600,
+                              fontSize: 13,
+                              color: Colors.white70,
                             ),
                           ),
                         ],
@@ -155,15 +193,79 @@ class _CategorySelectionScreenState extends State<CategorySelectionScreen> {
                     ),
                     const Icon(
                       Icons.arrow_forward_ios,
-                      color: AppTheme.navy,
+                      color: Colors.white70,
                       size: 18,
                     ),
                   ],
                 ),
               ),
             ),
-          );
-        },
+          ),
+
+          // ─── 各分野カード ───
+          ...categories.map(
+            (category) => Card(
+              elevation: 2,
+              margin: const EdgeInsets.only(bottom: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: InkWell(
+                onTap: () => _startCategoryQuiz(category['name'] as String),
+                borderRadius: BorderRadius.circular(16),
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: (category['color'] as Color)
+                              .withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(
+                          category['icon'] as IconData,
+                          color: category['color'] as Color,
+                          size: 32,
+                        ),
+                      ),
+                      const SizedBox(width: 20),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              category['name'] as String,
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: AppTheme.navy,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              category['description'] as String,
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey.shade600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Icon(
+                        Icons.arrow_forward_ios,
+                        color: AppTheme.navy,
+                        size: 18,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

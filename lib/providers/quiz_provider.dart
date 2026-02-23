@@ -11,6 +11,8 @@ class QuizState {
   final bool isAnswered;
   final int score;
   final bool isCompleted;
+  final bool isInfiniteMode;
+  final int totalAnswered; // 無限モード用：累計回答数
 
   const QuizState({
     this.questions = const [],
@@ -19,6 +21,8 @@ class QuizState {
     this.isAnswered = false,
     this.score = 0,
     this.isCompleted = false,
+    this.isInfiniteMode = false,
+    this.totalAnswered = 0,
   });
 
   Question get currentQuestion => questions[currentIndex];
@@ -33,6 +37,8 @@ class QuizState {
     bool? isAnswered,
     int? score,
     bool? isCompleted,
+    bool? isInfiniteMode,
+    int? totalAnswered,
   }) {
     return QuizState(
       questions: questions ?? this.questions,
@@ -41,16 +47,25 @@ class QuizState {
       isAnswered: isAnswered ?? this.isAnswered,
       score: score ?? this.score,
       isCompleted: isCompleted ?? this.isCompleted,
+      isInfiniteMode: isInfiniteMode ?? this.isInfiniteMode,
+      totalAnswered: totalAnswered ?? this.totalAnswered,
     );
   }
 }
 
 class QuizNotifier extends StateNotifier<QuizState> {
   final Ref ref;
+  // 無限モード用: 全問プール
+  List<Question> _infinitePool = [];
+
   QuizNotifier({required this.ref}) : super(const QuizState());
 
-  void loadQuestions(List<Question> questions) {
-    state = QuizState(questions: questions);
+  void loadQuestions(List<Question> questions, {bool infiniteMode = false}) {
+    _infinitePool = infiniteMode ? List<Question>.from(questions) : [];
+    state = QuizState(
+      questions: questions,
+      isInfiniteMode: infiniteMode,
+    );
   }
 
   Future<void> _notifyDbUpdate() async {
@@ -63,14 +78,12 @@ class QuizNotifier extends StateNotifier<QuizState> {
     final isCorrect = optionIndex == state.currentQuestion.answerIndex;
     final currentQuestion = state.currentQuestion;
 
-    // Update state immediately for better UX responsiveness
     state = state.copyWith(
       selectedOptionIndex: optionIndex,
       isAnswered: true,
       score: isCorrect ? state.score + 1 : state.score,
     );
 
-    // Save result for this specific question in the background (Cloud)
     try {
       await SupabaseService.instance.saveAnswer(
         questionId: currentQuestion.id,
@@ -80,7 +93,7 @@ class QuizNotifier extends StateNotifier<QuizState> {
 
       await SupabaseService.instance.toggleFavorite(
         currentQuestion.id,
-        false, // Note: Future logic could handle "wrong as weakness" if needed
+        false,
       );
 
       _notifyDbUpdate();
@@ -91,18 +104,34 @@ class QuizNotifier extends StateNotifier<QuizState> {
 
   Future<void> nextQuestion() async {
     if (state.currentIndex < state.questions.length - 1) {
+      // まだ問題が残っている
       state = QuizState(
         questions: state.questions,
         currentIndex: state.currentIndex + 1,
         score: state.score,
         isAnswered: false,
         selectedOptionIndex: null,
+        isInfiniteMode: state.isInfiniteMode,
+        totalAnswered: state.totalAnswered + 1,
+      );
+    } else if (state.isInfiniteMode) {
+      // 無限モード：再シャッフルして最初から
+      final newList = List<Question>.from(_infinitePool)..shuffle();
+      state = QuizState(
+        questions: newList,
+        currentIndex: 0,
+        score: state.score,
+        isAnswered: false,
+        selectedOptionIndex: null,
+        isInfiniteMode: true,
+        totalAnswered: state.totalAnswered + 1,
       );
     } else {
-      // Mark as completed immediately for UI responsiveness
-      state = state.copyWith(isCompleted: true);
-
-      // Save final quiz result to Cloud in the background
+      // 通常モード：完了
+      state = state.copyWith(
+        isCompleted: true,
+        totalAnswered: state.totalAnswered + 1,
+      );
       await saveCurrentResult();
     }
   }
@@ -110,9 +139,6 @@ class QuizNotifier extends StateNotifier<QuizState> {
   Future<void> saveCurrentResult() async {
     if (state.questions.isEmpty) return;
 
-    // How many questions were actually attempted?
-    // If the current question IS answered, then currentIndex + 1 have been done.
-    // If NOT answered, then only currentIndex have been completed.
     final attemptedCount =
         state.isAnswered ? state.currentIndex + 1 : state.currentIndex;
 
@@ -132,6 +158,7 @@ class QuizNotifier extends StateNotifier<QuizState> {
   }
 
   void reset() {
+    _infinitePool = [];
     state = const QuizState();
   }
 }

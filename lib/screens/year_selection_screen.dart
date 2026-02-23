@@ -38,6 +38,39 @@ class _YearSelectionScreenState extends State<YearSelectionScreen> {
     }
   }
 
+  Future<void> _onYearTap(String id, String displayTitle) async {
+    List<Question> questions = [];
+    try {
+      questions = await SupabaseService.instance.getQuestionsByYear(id);
+    } catch (e) {
+      debugPrint('Cloud loading failed, falling back to asset: $e');
+    }
+    if (questions.isEmpty) {
+      questions = await QuestionLoader.loadQuestionsByYear(id);
+    }
+
+    if (questions.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('問題の読み込みに失敗しました')),
+      );
+      return;
+    }
+
+    // 常にシャッフルして出題
+    questions.shuffle();
+
+    if (!mounted) return;
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => QuizScreen(
+          questions: questions,
+          title: displayTitle,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -81,43 +114,7 @@ class _YearSelectionScreenState extends State<YearSelectionScreen> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: InkWell(
-                        onTap: () async {
-                          // 1. Cloudから問題を読み込んでみる
-                          List<Question> questions = [];
-                          try {
-                            questions = await SupabaseService.instance
-                                .getQuestionsByYear(id);
-                          } catch (e) {
-                            print(
-                                'Cloud loading failed, falling back to asset: $e');
-                          }
-
-                          // 2. CloudになければAssetから読み込む
-                          if (questions.isEmpty) {
-                            questions =
-                                await QuestionLoader.loadQuestionsByYear(id);
-                          }
-
-                          if (questions.isEmpty) {
-                            if (!mounted) return;
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('問題の読み込みに失敗しました'),
-                              ),
-                            );
-                            return;
-                          }
-
-                          if (!mounted) return;
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => QuizScreen(
-                                questions: questions,
-                                title: displayTitle,
-                              ),
-                            ),
-                          );
-                        },
+                        onTap: () => _onYearTap(id, displayTitle),
                         borderRadius: BorderRadius.circular(12),
                         child: Padding(
                           padding: const EdgeInsets.all(20),
