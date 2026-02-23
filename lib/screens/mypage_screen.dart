@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../theme/app_theme.dart';
 import '../providers/progress_provider.dart';
-import '../services/database_helper.dart';
+import '../services/supabase_service.dart';
 import '../providers/saved_questions_provider.dart';
 
 class MyPageScreen extends ConsumerWidget {
@@ -11,6 +11,7 @@ class MyPageScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final progressAsync = ref.watch(progressProvider);
+    final profileAsync = ref.watch(profileProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -26,9 +27,14 @@ class MyPageScreen extends ConsumerWidget {
               child: Icon(Icons.person, size: 60, color: Colors.white),
             ),
             const SizedBox(height: 16),
-            const Text(
-              '学習者 さん',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            profileAsync.when(
+              data: (profile) => Text(
+                '${profile?['nickname'] ?? '学習者'} さん',
+                style:
+                    const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              ),
+              loading: () => const CircularProgressIndicator(),
+              error: (_, __) => const Text('学習者 さん'),
             ),
             const SizedBox(height: 8),
             const Text('潜水士 合格を目指して学習中'),
@@ -133,7 +139,7 @@ class MyPageScreen extends ConsumerWidget {
           ),
           TextButton(
             onPressed: () async {
-              await DatabaseHelper.instance.resetDatabase();
+              await SupabaseService.instance.resetUserData();
               ref.invalidate(progressProvider);
               ref.invalidate(quizHistoryProvider);
               ref.invalidate(wrongQuestionsProvider);

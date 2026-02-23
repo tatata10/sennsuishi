@@ -10,6 +10,8 @@ import 'category_selection_screen.dart';
 import 'history_screen.dart';
 import 'mypage_screen.dart';
 import 'analysis_screen.dart';
+import 'mock_exam_setup_screen.dart';
+import 'mock_exam_year_setup_screen.dart';
 import '../providers/progress_provider.dart';
 
 final navigationIndexProvider = StateProvider<int>((ref) => 0);
@@ -154,6 +156,31 @@ class HomeScreen extends ConsumerWidget {
                         Navigator.of(context).push(
                           MaterialPageRoute(
                               builder: (context) => const WeaknessScreen()),
+                        );
+                      },
+                    ),
+                    HomeMenuButton(
+                      title: '模擬試験',
+                      icon: Icons.assignment_turned_in,
+                      color: AppTheme.navy,
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                              builder: (context) =>
+                                  const MockExamYearSetupScreen()),
+                        );
+                      },
+                    ),
+                    HomeMenuButton(
+                      title: '力試しモード',
+                      subtitle: '（ランダム出題）',
+                      icon: Icons.casino,
+                      color: Colors.deepPurple,
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                              builder: (context) =>
+                                  const MockExamSetupScreen()),
                         );
                       },
                     ),

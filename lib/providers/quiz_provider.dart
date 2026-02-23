@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/question_model.dart';
-import '../services/database_helper.dart';
+import '../services/supabase_service.dart';
 import 'progress_provider.dart';
 
 // State for a single quiz session
@@ -61,35 +61,32 @@ class QuizNotifier extends StateNotifier<QuizState> {
     if (state.isAnswered) return;
 
     final isCorrect = optionIndex == state.currentQuestion.answerIndex;
+    final currentQuestion = state.currentQuestion;
 
-    // Save result for this specific question
-    try {
-      await DatabaseHelper.instance.markQuestionAnswered(
-        state.currentQuestion.id,
-        state.currentQuestion.category,
-        isCorrect,
-      );
-
-      if (!isCorrect) {
-        // Save to weaknesses
-        await DatabaseHelper.instance
-            .saveQuestion(state.currentQuestion, isWrong: true);
-      } else {
-        // Remove from weaknesses if they got it right
-        await DatabaseHelper.instance.removeWrongFlag(state.currentQuestion.id);
-      }
-
-      _notifyDbUpdate();
-    } catch (e) {
-      // ignore database errors to allow the quiz to continue even if setup failed
-      print('Database error in answer: $e');
-    }
-
+    // Update state immediately for better UX responsiveness
     state = state.copyWith(
       selectedOptionIndex: optionIndex,
       isAnswered: true,
       score: isCorrect ? state.score + 1 : state.score,
     );
+
+    // Save result for this specific question in the background (Cloud)
+    try {
+      await SupabaseService.instance.saveAnswer(
+        questionId: currentQuestion.id,
+        category: currentQuestion.category,
+        isCorrect: isCorrect,
+      );
+
+      await SupabaseService.instance.toggleFavorite(
+        currentQuestion.id,
+        false, // Note: Future logic could handle "wrong as weakness" if needed
+      );
+
+      _notifyDbUpdate();
+    } catch (e) {
+      print('Supabase error in answer: $e');
+    }
   }
 
   Future<void> nextQuestion() async {
@@ -98,26 +95,39 @@ class QuizNotifier extends StateNotifier<QuizState> {
         questions: state.questions,
         currentIndex: state.currentIndex + 1,
         score: state.score,
-        // Reset per-question state
         isAnswered: false,
         selectedOptionIndex: null,
       );
     } else {
-      // Save final quiz result
-      try {
-        await DatabaseHelper.instance.saveQuizResult(
-          state.questions.length,
-          state.score,
-          state.questions.first.category,
-        );
-
-        _notifyDbUpdate();
-      } catch (e) {
-        print('Database error in nextQuestion: $e');
-      }
-
-      // Mark as completed instead of looping
+      // Mark as completed immediately for UI responsiveness
       state = state.copyWith(isCompleted: true);
+
+      // Save final quiz result to Cloud in the background
+      await saveCurrentResult();
+    }
+  }
+
+  Future<void> saveCurrentResult() async {
+    if (state.questions.isEmpty) return;
+
+    // How many questions were actually attempted?
+    // If the current question IS answered, then currentIndex + 1 have been done.
+    // If NOT answered, then only currentIndex have been completed.
+    final attemptedCount =
+        state.isAnswered ? state.currentIndex + 1 : state.currentIndex;
+
+    if (attemptedCount == 0) return;
+
+    try {
+      await SupabaseService.instance.saveQuizResult(
+        totalQuestions: attemptedCount,
+        score: state.score,
+        category: state.questions.first.category,
+      );
+
+      _notifyDbUpdate();
+    } catch (e) {
+      print('Supabase error in saveCurrentResult: $e');
     }
   }
 

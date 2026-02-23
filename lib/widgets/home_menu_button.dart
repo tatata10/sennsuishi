@@ -3,6 +3,7 @@ import '../theme/app_theme.dart';
 
 class HomeMenuButton extends StatelessWidget {
   final String title;
+  final String? subtitle;
   final IconData icon;
   final VoidCallback onTap;
   final Color color;
@@ -13,6 +14,7 @@ class HomeMenuButton extends StatelessWidget {
     required this.icon,
     required this.onTap,
     this.color = AppTheme.navy,
+    this.subtitle,
   });
 
   @override
@@ -60,6 +62,17 @@ class HomeMenuButton extends StatelessWidget {
                 ),
                 textAlign: TextAlign.center,
               ),
+              if (subtitle != null) ...[
+                const SizedBox(height: 2),
+                Text(
+                  subtitle!,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Colors.grey.shade500,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
             ],
           ),
         ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../services/question_loader.dart';
+import '../services/supabase_service.dart';
 import '../models/question_model.dart';
 import 'quiz_screen.dart';
 
@@ -47,19 +48,28 @@ class _CategorySelectionScreenState extends State<CategorySelectionScreen> {
   ];
 
   Future<void> _startCategoryQuiz(String categoryName) async {
-    // 1. JSONから最新の問題を取得
-    final availableYears = await QuestionLoader.getAvailableYears();
-    List<Question> allQuestions = [];
+    List<Question> filteredQuestions = [];
 
-    // 全年度の問題をロードして結合（本当はキャッシュやDB化が望ましい）
-    for (final year in availableYears) {
-      final yearQuestions = await QuestionLoader.loadQuestionsByYear(year);
-      allQuestions.addAll(yearQuestions);
+    // 1. Cloudから特定のカテゴリーの問題を直接取得
+    try {
+      filteredQuestions =
+          await SupabaseService.instance.getQuestionsByCategory(categoryName);
+    } catch (e) {
+      print(
+          'Cloud loading failed for category, falling back to all-asset search');
     }
 
-    // カテゴリーでフィルタリング
-    final filteredQuestions =
-        QuestionLoader.filterByCategory(allQuestions, categoryName);
+    // 2. Cloudが空または失敗した場合は、ローカルの全Assetから探す（旧ロジック）
+    if (filteredQuestions.isEmpty) {
+      final availableYears = await QuestionLoader.getAvailableYears();
+      List<Question> allQuestions = [];
+      for (final year in availableYears) {
+        final yearQuestions = await QuestionLoader.loadQuestionsByYear(year);
+        allQuestions.addAll(yearQuestions);
+      }
+      filteredQuestions =
+          QuestionLoader.filterByCategory(allQuestions, categoryName);
+    }
 
     if (filteredQuestions.isEmpty) {
       if (!mounted) return;

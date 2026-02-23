@@ -80,13 +80,13 @@ class Question {
     };
   }
 
-  // Helper for SQLite
-  Map<String, dynamic> toMap() {
+  // Helper for Database (SQLite/Supabase)
+  Map<String, dynamic> toMap({bool forSupabase = false}) {
     return {
       'id': id,
       'category': category,
       'question': question,
-      'options': options.join('|||'),
+      'options': forSupabase ? options : options.join('|||'),
       'answer_index': answerIndex,
       'explanation': explanation,
       'image_url': imageUrl,
@@ -94,13 +94,21 @@ class Question {
   }
 
   factory Question.fromMap(Map<String, dynamic> map) {
+    final rawOptions = map['options'];
+    List<String> optionsList;
+    if (rawOptions is List) {
+      optionsList = List<String>.from(rawOptions);
+    } else {
+      optionsList = (rawOptions as String).split('|||');
+    }
+
     return Question(
       id: map['id'] as String,
       category: map['category'] as String,
       question: map['question'] as String,
-      options: (map['options'] as String).split('|||'),
+      options: optionsList,
       answerIndex: map['answer_index'] as int,
-      explanation: map['explanation'] as String,
+      explanation: map['explanation'] as String? ?? "",
       imageUrl: map['image_url'] as String?,
     );
   }

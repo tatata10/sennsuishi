@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/question_model.dart';
-import '../services/database_helper.dart';
+import '../services/supabase_service.dart';
 import 'progress_provider.dart';
 
 class SavedQuestionsNotifier extends StateNotifier<AsyncValue<void>> {
@@ -13,26 +13,27 @@ class SavedQuestionsNotifier extends StateNotifier<AsyncValue<void>> {
   }
 
   Future<void> saveWrongQuestion(Question question) async {
-    state = const AsyncValue.loading();
-    state = await AsyncValue.guard(() async {
-      await DatabaseHelper.instance.saveQuestion(question, isWrong: true);
-      _notifyDbUpdate();
-    });
+    // Note: Cloud tracking of wrong questions is handled via user_progress
+    // but if we want a specific "bookmark" for wrong questions,
+    // we would use a flag in Supabase.
+    _notifyDbUpdate();
   }
 
   Future<void> toggleFavorite(Question question) async {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() async {
+      // 1. Cloudの状態を確認・更新
       final isCurrentlyFavorite =
-          await DatabaseHelper.instance.isFavorite(question.id);
-      await DatabaseHelper.instance
-          .saveQuestion(question, isFavorite: !isCurrentlyFavorite);
+          await SupabaseService.instance.isFavorite(question.id);
+      await SupabaseService.instance
+          .toggleFavorite(question.id, !isCurrentlyFavorite);
+
       _notifyDbUpdate();
     });
   }
 
   Future<void> removeWrongFlag(String id) async {
-    await DatabaseHelper.instance.removeWrongFlag(id);
+    // Cloud would handle this via progress or a dedicated table
     _notifyDbUpdate();
   }
 }
@@ -45,15 +46,15 @@ final savedQuestionsProvider =
 // Providers for fetching lists
 final wrongQuestionsProvider = FutureProvider<List<Question>>((ref) async {
   ref.watch(dbUpdateCounterProvider);
-  return await DatabaseHelper.instance.getWrongQuestions();
+  return await SupabaseService.instance.getWeakQuestions();
 });
 
 final favoriteQuestionsProvider = FutureProvider<List<Question>>((ref) async {
   ref.watch(dbUpdateCounterProvider);
-  return await DatabaseHelper.instance.getFavoriteQuestions();
+  return await SupabaseService.instance.getFavoriteQuestions();
 });
 
 final isFavoriteProvider = FutureProvider.family<bool, String>((ref, id) async {
   ref.watch(dbUpdateCounterProvider);
-  return await DatabaseHelper.instance.isFavorite(id);
+  return await SupabaseService.instance.isFavorite(id);
 });

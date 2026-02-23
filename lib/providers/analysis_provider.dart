@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../services/database_helper.dart';
+import '../services/supabase_service.dart';
 import 'progress_provider.dart';
 
 class CategoryStats {
@@ -22,10 +22,13 @@ final categoryAnalysisProvider =
     FutureProvider<List<CategoryStats>>((ref) async {
   ref.watch(dbUpdateCounterProvider);
 
-  final analysis = await DatabaseHelper.instance.getCategoryAnalysis();
-  final weaknesses = await DatabaseHelper.instance.getWeaknessStats();
+  // Cloudから分析データを取得
+  final analysis = await SupabaseService.instance.getCategoryAnalysis();
 
-  // Combine data
+  // Cloudから弱点統計を取得
+  final Map<String, int> weaknesses =
+      await SupabaseService.instance.getWeaknessStats();
+
   return analysis.map((row) {
     final cat = row['category'] as String;
     return CategoryStats(
@@ -40,7 +43,8 @@ final categoryAnalysisProvider =
 // Overall trend data
 final recentScoresProvider = FutureProvider<List<double>>((ref) async {
   ref.watch(dbUpdateCounterProvider);
-  final history = await DatabaseHelper.instance.getRecentHistory();
+
+  final history = await SupabaseService.instance.getQuizHistory();
   return history
       .map((h) => (h['score'] as int) / (h['total_questions'] as int))
       .toList()

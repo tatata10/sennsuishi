@@ -209,8 +209,16 @@ class HistoryScreen extends ConsumerWidget {
     final total = item['total_questions'] as int;
     final score = item['score'] as int;
     final category = item['category'] as String;
-    final timestamp = item['timestamp'] as int;
-    final date = DateTime.fromMillisecondsSinceEpoch(timestamp);
+
+    // Cloud uses 'created_at' (ISO string), Local uses 'timestamp' (int)
+    DateTime date;
+    if (item['created_at'] != null) {
+      date = DateTime.parse(item['created_at'] as String).toLocal();
+    } else {
+      final timestamp = item['timestamp'] as int? ?? 0;
+      date = DateTime.fromMillisecondsSinceEpoch(timestamp);
+    }
+
     final dateStr = DateFormat('MM/dd HH:mm').format(date);
     final percentage = (score / total);
     final isPass = percentage >= 0.6;

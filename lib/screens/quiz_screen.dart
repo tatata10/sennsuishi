@@ -119,64 +119,62 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Question Number
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Q${quizState.currentIndex + 1}',
-                          style: AppTheme.theme.textTheme.titleLarge?.copyWith(
-                            color: AppTheme.navy,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: AppTheme.navy.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(
-                            question.category,
+                    // Question Number (Hide for category quizzes)
+                    if (!(widget.title?.contains('分野別') ?? false))
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Q${quizState.currentIndex + 1}',
                             style:
-                                AppTheme.theme.textTheme.labelMedium?.copyWith(
+                                AppTheme.theme.textTheme.titleLarge?.copyWith(
                               color: AppTheme.navy,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: AppTheme.navy.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(
+                              question.category,
+                              style: AppTheme.theme.textTheme.labelMedium
+                                  ?.copyWith(
+                                color: AppTheme.navy,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    if (!(widget.title?.contains('分野別') ?? false))
+                      const SizedBox(height: 20),
                     // Question Image (if any)
                     if (question.imageUrl != null &&
                         question.imageUrl!.isNotEmpty) ...[
                       ClipRRect(
                         borderRadius: BorderRadius.circular(12),
-                        child: Image.asset(
-                          question.imageUrl!,
-                          width: double.infinity,
-                          fit: BoxFit.contain,
-                          errorBuilder: (context, error, stackTrace) {
-                            return Container(
-                              padding: const EdgeInsets.all(20),
-                              decoration: BoxDecoration(
-                                color: Colors.grey.shade200,
-                                borderRadius: BorderRadius.circular(12),
+                        child: question.imageUrl!.startsWith('http') ||
+                                question.imageUrl!.startsWith('//')
+                            ? Image.network(
+                                question.imageUrl!.startsWith('//')
+                                    ? 'https:${question.imageUrl}'
+                                    : question.imageUrl!,
+                                width: double.infinity,
+                                fit: BoxFit.contain,
+                                errorBuilder: (context, error, stackTrace) =>
+                                    _buildImageError(),
+                              )
+                            : Image.asset(
+                                question.imageUrl!,
+                                width: double.infinity,
+                                fit: BoxFit.contain,
+                                errorBuilder: (context, error, stackTrace) =>
+                                    _buildImageError(),
                               ),
-                              child: const Column(
-                                children: [
-                                  Icon(Icons.broken_image,
-                                      color: Colors.grey, size: 48),
-                                  SizedBox(height: 8),
-                                  Text('画像が読み込めませんでした',
-                                      style: TextStyle(color: Colors.grey)),
-                                ],
-                              ),
-                            );
-                          },
-                        ),
                       ),
                       const SizedBox(height: 24),
                     ],
@@ -263,10 +261,66 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
                                 height: 1.5,
                               ),
                             ),
+                            const SizedBox(height: 24),
+                            // Dual Action Buttons: Exit and Next
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: OutlinedButton.icon(
+                                    onPressed: () async {
+                                      // 学習履歴に反映してから終了
+                                      await ref
+                                          .read(quizProvider.notifier)
+                                          .saveCurrentResult();
+                                      if (!context.mounted) return;
+                                      Navigator.of(context).pop();
+                                    },
+                                    icon: const Icon(Icons.exit_to_app),
+                                    label: const Text('終了する'),
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: Colors.grey.shade700,
+                                      padding: const EdgeInsets.symmetric(
+                                          vertical: 16),
+                                      side: BorderSide(
+                                          color: Colors.grey.shade300),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  flex: 2,
+                                  child: ElevatedButton.icon(
+                                    onPressed: () {
+                                      ref
+                                          .read(quizProvider.notifier)
+                                          .nextQuestion();
+                                    },
+                                    icon: Icon(
+                                      quizState.currentIndex ==
+                                              quizState.questions.length - 1
+                                          ? Icons.check_circle
+                                          : Icons.arrow_forward,
+                                    ),
+                                    label: Text(
+                                      quizState.currentIndex ==
+                                              quizState.questions.length - 1
+                                          ? '結果を見る'
+                                          : '次の１問',
+                                    ),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: AppTheme.navy,
+                                      foregroundColor: Colors.white,
+                                      padding: const EdgeInsets.symmetric(
+                                          vertical: 16),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ],
                         ),
                       ),
-                      const SizedBox(height: 100), // Space for floating button
+                      const SizedBox(height: 40),
                     ],
                   ],
                 ),
@@ -275,25 +329,26 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
           ],
         ),
       ),
-      floatingActionButton: isAnswered
-          ? FloatingActionButton.extended(
-              onPressed: () {
-                ref.read(quizProvider.notifier).nextQuestion();
-              },
-              backgroundColor: AppTheme.navy,
-              icon: Icon(
-                quizState.currentIndex == quizState.questions.length - 1
-                    ? Icons.check_circle
-                    : Icons.arrow_forward,
-              ),
-              label: Text(
-                quizState.currentIndex == quizState.questions.length - 1
-                    ? '結果を見る'
-                    : '次の問題へ',
-              ),
-            )
-          : null,
+      // Keep FAB hidden to prioritize the on-page buttons
+      floatingActionButton: null,
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+    );
+  }
+
+  Widget _buildImageError() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade200,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: const Column(
+        children: [
+          Icon(Icons.broken_image, color: Colors.grey, size: 48),
+          SizedBox(height: 8),
+          Text('画像が読み込めませんでした', style: TextStyle(color: Colors.grey)),
+        ],
+      ),
     );
   }
 }

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../services/question_loader.dart';
+import '../services/supabase_service.dart';
+import '../models/question_model.dart';
 import 'quiz_screen.dart';
 
 class YearSelectionScreen extends StatefulWidget {
@@ -80,9 +82,21 @@ class _YearSelectionScreenState extends State<YearSelectionScreen> {
                       ),
                       child: InkWell(
                         onTap: () async {
-                          // 問題を読み込んでクイズ画面へ遷移
-                          final questions =
-                              await QuestionLoader.loadQuestionsByYear(id);
+                          // 1. Cloudから問題を読み込んでみる
+                          List<Question> questions = [];
+                          try {
+                            questions = await SupabaseService.instance
+                                .getQuestionsByYear(id);
+                          } catch (e) {
+                            print(
+                                'Cloud loading failed, falling back to asset: $e');
+                          }
+
+                          // 2. CloudになければAssetから読み込む
+                          if (questions.isEmpty) {
+                            questions =
+                                await QuestionLoader.loadQuestionsByYear(id);
+                          }
 
                           if (questions.isEmpty) {
                             if (!mounted) return;
