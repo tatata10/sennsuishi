@@ -114,7 +114,8 @@ class _CategorySelectionScreenState extends State<CategorySelectionScreen> {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => QuizScreen(
-          questions: questions.take(10).toList(),
+          questions: questions,
+          isInfiniteMode: true,
           title: '分野別 全分野ランダム',
         ),
       ),
@@ -182,7 +183,7 @@ class _CategorySelectionScreenState extends State<CategorySelectionScreen> {
                           ),
                           SizedBox(height: 4),
                           Text(
-                            '全分野からランダムに10問出題',
+                            '終了までエンドレスに出題',
                             style: TextStyle(
                               fontSize: 13,
                               color: Colors.white70,

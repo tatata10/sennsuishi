@@ -5,6 +5,7 @@ import 'config/supabase_config.dart';
 import 'screens/home_screen.dart';
 import 'screens/welcome_screen.dart';
 import 'services/supabase_service.dart';
+import 'services/ad_helper.dart';
 import 'theme/app_theme.dart';
 
 void main() async {
@@ -24,6 +25,9 @@ void main() async {
       await supabase.auth.signInAnonymously();
     }
   }
+
+  // 広告の初期化
+  await AdHelper.init();
 
   runApp(
     const ProviderScope(

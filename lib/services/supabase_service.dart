@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/question_model.dart';
 
@@ -140,120 +141,183 @@ class SupabaseService {
   }
 
   Future<List<Map<String, dynamic>>> getQuizHistory() async {
-    final userId = currentUser?.id;
-    if (userId == null) return [];
+    try {
+      final userId = currentUser?.id;
+      if (userId == null) return [];
 
-    final response = await _client
-        .from('quiz_history')
-        .select()
-        .eq('user_id', userId)
-        .order('created_at', ascending: false);
+      final response = await _client
+          .from('quiz_history')
+          .select()
+          .eq('user_id', userId)
+          .order('created_at', ascending: false);
 
-    return (response as List)
-        .map((item) => item as Map<String, dynamic>)
-        .toList();
+      return (response as List)
+          .map((item) => item as Map<String, dynamic>)
+          .toList();
+    } catch (e) {
+      debugPrint('Error getting quiz history: $e');
+      return [];
+    }
   }
 
   Future<List<Map<String, dynamic>>> getCategoryAnalysis() async {
-    final userId = currentUser?.id;
-    if (userId == null) return [];
+    try {
+      final userId = currentUser?.id;
+      if (userId == null) return [];
 
-    final response = await _client
-        .from('user_progress')
-        .select('category, is_correct')
-        .eq('user_id', userId);
+      final response = await _client
+          .from('user_progress')
+          .select('category, is_correct')
+          .eq('user_id', userId);
 
-    // Grouping by category locally for simplicity, or we could use Supabase RPC
-    final data = response as List;
-    final Map<String, Map<String, int>> stats = {};
+      final data = response as List;
+      final Map<String, Map<String, int>> stats = {};
 
-    for (var item in data) {
-      final category = item['category'] as String;
-      final isCorrect = item['is_correct'] as bool;
+      for (var item in data) {
+        final category = item['category'] as String? ?? 'その他';
+        final isCorrect = item['is_correct'] as bool? ?? false;
 
-      stats.putIfAbsent(category, () => {'total': 0, 'correct': 0});
-      stats[category]!['total'] = stats[category]!['total']! + 1;
-      if (isCorrect) {
-        stats[category]!['correct'] = stats[category]!['correct']! + 1;
+        stats.putIfAbsent(category, () => {'total': 0, 'correct': 0});
+        stats[category]!['total'] = stats[category]!['total']! + 1;
+        if (isCorrect) {
+          stats[category]!['correct'] = stats[category]!['correct']! + 1;
+        }
       }
-    }
 
-    return stats.entries
-        .map((e) => {
-              'category': e.key,
-              'total': e.value['total'],
-              'correct': e.value['correct'],
-            })
-        .toList();
+      return stats.entries
+          .map((e) => {
+                'category': e.key,
+                'total': e.value['total'],
+                'correct': e.value['correct'],
+              })
+          .toList();
+    } catch (e) {
+      debugPrint('Error getting category analysis: $e');
+      return [];
+    }
   }
 
   Future<List<Question>> getFavoriteQuestions() async {
-    final userId = currentUser?.id;
-    if (userId == null) return [];
+    try {
+      final userId = currentUser?.id;
+      if (userId == null) return [];
 
-    // 1. Get favorite IDs
-    final favResponse = await _client
-        .from('user_favorites')
-        .select('question_id')
-        .eq('user_id', userId);
+      final favResponse = await _client
+          .from('user_favorites')
+          .select('question_id')
+          .eq('user_id', userId);
 
-    final List<String> favIds =
-        (favResponse as List).map((f) => f['question_id'] as String).toList();
+      final List<String> favIds =
+          (favResponse as List).map((f) => f['question_id'] as String).toList();
 
-    if (favIds.isEmpty) return [];
+      if (favIds.isEmpty) return [];
 
-    // 2. Fetch full question details
-    final questionsResponse =
-        await _client.from('questions').select().inFilter('id', favIds);
+      final questionsResponse =
+          await _client.from('questions').select().filter('id', 'in', favIds);
 
-    return (questionsResponse as List)
-        .map((json) => Question.fromMap(json))
-        .toList();
+      return (questionsResponse as List)
+          .map((json) => Question.fromMap(json))
+          .toList();
+    } catch (e) {
+      debugPrint('Error getting favorite questions: $e');
+      return [];
+    }
   }
 
   Future<List<Question>> getWeakQuestions() async {
-    final userId = currentUser?.id;
-    if (userId == null) return [];
+    try {
+      final userId = currentUser?.id;
+      if (userId == null) return [];
 
-    // 1. Get IDs of questions answered incorrectly (is_correct = false)
-    final weakResponse = await _client
-        .from('user_progress')
-        .select('question_id')
-        .eq('user_id', userId)
-        .eq('is_correct', false);
+      final weakResponse = await _client
+          .from('user_progress')
+          .select('question_id')
+          .eq('user_id', userId)
+          .eq('is_correct', false);
 
-    final List<String> weakIds =
-        (weakResponse as List).map((f) => f['question_id'] as String).toList();
+      final List<String> weakIds = (weakResponse as List)
+          .map((f) => f['question_id'] as String)
+          .toList();
 
-    if (weakIds.isEmpty) return [];
+      if (weakIds.isEmpty) return [];
 
-    // 2. Fetch full question details
-    final questionsResponse =
-        await _client.from('questions').select().inFilter('id', weakIds);
+      final questionsResponse =
+          await _client.from('questions').select().filter('id', 'in', weakIds);
 
-    return (questionsResponse as List)
-        .map((json) => Question.fromMap(json))
-        .toList();
+      return (questionsResponse as List)
+          .map((json) => Question.fromMap(json))
+          .toList();
+    } catch (e) {
+      debugPrint('Error getting weak questions: $e');
+      return [];
+    }
   }
 
   Future<Map<String, int>> getWeaknessStats() async {
-    final userId = currentUser?.id;
-    if (userId == null) return {};
+    try {
+      final userId = currentUser?.id;
+      if (userId == null) return {};
 
-    final response = await _client
-        .from('user_progress')
-        .select('category')
-        .eq('user_id', userId)
-        .eq('is_correct', false);
+      final response = await _client
+          .from('user_progress')
+          .select('category')
+          .eq('user_id', userId)
+          .eq('is_correct', false);
 
-    final data = response as List;
-    final Map<String, int> stats = {};
+      final data = response as List;
+      final Map<String, int> stats = {};
 
-    for (var item in data) {
-      final category = item['category'] as String;
-      stats[category] = (stats[category] ?? 0) + 1;
+      for (var item in data) {
+        final category = item['category'] as String? ?? 'その他';
+        stats[category] = (stats[category] ?? 0) + 1;
+      }
+
+      return stats;
+    } catch (e) {
+      debugPrint('Error getting weakness stats: $e');
+      return {};
     }
+  }
+  // --- Rewards & Unlocks ---
 
-    return stats;
+  Future<int> getAdVewCount(String itemKey) async {
+    try {
+      final userId = currentUser?.id;
+      if (userId == null) return 0;
+
+      final response = await _client
+          .from('user_unlock_progress')
+          .select('views_count')
+          .match({'user_id': userId, 'item_key': itemKey}).maybeSingle();
+
+      if (response == null) return 0;
+      return response['views_count'] as int? ?? 0;
+    } catch (e) {
+      debugPrint('Error getting ad view count: $e');
+      return 0;
+    }
+  }
+
+  Future<void> incrementAdViewCount(String itemKey) async {
+    try {
+      final userId = currentUser?.id;
+      if (userId == null) return;
+
+      final currentCount = await getAdVewCount(itemKey);
+
+      await _client.from('user_unlock_progress').upsert({
+        'user_id': userId,
+        'item_key': itemKey,
+        'views_count': currentCount + 1,
+        'updated_at': DateTime.now().toIso8601String(),
+      });
+    } catch (e) {
+      debugPrint('Error incrementing ad view count: $e');
+    }
+  }
+
+  Future<bool> isItemUnlocked(String itemKey, int requiredViews) async {
+    final views = await getAdVewCount(itemKey);
+    return views >= requiredViews;
   }
 }

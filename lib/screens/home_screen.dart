@@ -13,6 +13,7 @@ import 'analysis_screen.dart';
 import 'mock_exam_setup_screen.dart';
 import 'mock_exam_year_setup_screen.dart';
 import '../providers/progress_provider.dart';
+import '../widgets/banner_ad_widget.dart';
 
 final navigationIndexProvider = StateProvider<int>((ref) => 0);
 
@@ -43,6 +44,7 @@ class HomeScreen extends ConsumerWidget {
           ref.read(navigationIndexProvider.notifier).state = index;
         },
       ),
+      bottomSheet: const BannerAdWidget(),
     );
   }
 
