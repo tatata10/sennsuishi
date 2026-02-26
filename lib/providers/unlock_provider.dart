@@ -1,12 +1,12 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../services/supabase_service.dart';
+import '../services/local_database_service.dart';
 import 'progress_provider.dart';
 
 // 特定アイテムの視聴回数を取得するプロバイダー
 final adViewCountProvider =
     FutureProvider.family<int, String>((ref, itemKey) async {
   ref.watch(dbUpdateCounterProvider); // DB更新時に再取得
-  return await SupabaseService.instance.getAdVewCount(itemKey);
+  return await LocalDatabaseService.instance.getAdVewCount(itemKey);
 });
 
 // 解放済みかどうかを判定するプロバイダー

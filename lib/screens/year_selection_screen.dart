@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../theme/app_theme.dart';
 import '../services/question_loader.dart';
-import '../services/supabase_service.dart';
+import '../services/local_database_service.dart';
 import '../services/rewarded_ad_manager.dart';
 import '../models/question_model.dart';
 import '../providers/unlock_provider.dart';
@@ -53,7 +53,7 @@ class _YearSelectionScreenState extends ConsumerState<YearSelectionScreen> {
 
     List<Question> questions = [];
     try {
-      questions = await SupabaseService.instance.getQuestionsByYear(id);
+      questions = await LocalDatabaseService.instance.getQuestionsByYear(id);
     } catch (e) {
       debugPrint('Cloud loading failed, falling back to asset: $e');
     }
@@ -113,7 +113,7 @@ class _YearSelectionScreenState extends ConsumerState<YearSelectionScreen> {
     _adManager.loadAd(
       onUserEarnedReward: (reward) async {
         // 視聴完了
-        await SupabaseService.instance.incrementAdViewCount('year_$id');
+        await LocalDatabaseService.instance.incrementAdViewCount('year_$id');
         ref.read(dbUpdateCounterProvider.notifier).state++;
 
         if (!mounted) return;

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../services/question_loader.dart';
-import '../services/supabase_service.dart';
+import '../services/local_database_service.dart';
 import '../models/question_model.dart';
 import 'quiz_screen.dart';
 
@@ -51,8 +51,8 @@ class _CategorySelectionScreenState extends State<CategorySelectionScreen> {
     List<Question> questions = [];
 
     try {
-      questions =
-          await SupabaseService.instance.getQuestionsByCategory(categoryName);
+      questions = await LocalDatabaseService.instance
+          .getQuestionsByCategory(categoryName);
     } catch (_) {}
 
     if (questions.isEmpty) {
@@ -90,7 +90,7 @@ class _CategorySelectionScreenState extends State<CategorySelectionScreen> {
     List<Question> questions = [];
 
     try {
-      questions = await SupabaseService.instance.getQuestions();
+      questions = await LocalDatabaseService.instance.getQuestions();
     } catch (_) {}
 
     if (questions.isEmpty) {

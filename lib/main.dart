@@ -5,6 +5,7 @@ import 'config/supabase_config.dart';
 import 'screens/home_screen.dart';
 import 'screens/welcome_screen.dart';
 import 'services/supabase_service.dart';
+import 'services/local_database_service.dart';
 import 'services/ad_helper.dart';
 import 'theme/app_theme.dart';
 
@@ -28,6 +29,9 @@ void main() async {
 
   // 広告の初期化
   await AdHelper.init();
+
+  // ローカルDBの初期化とデータ投入
+  await LocalDatabaseService.instance.seedDatabase();
 
   runApp(
     const ProviderScope(
@@ -55,8 +59,22 @@ class AuthGate extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final supabase = Supabase.instance.client;
-    final user = supabase.auth.currentUser;
+    // Supabaseが初期化されている場合のみ取得を試みる
+    User? user;
+    try {
+      user = Supabase.instance.client.auth.currentUser;
+    } catch (_) {
+      // 初期化されていない場合はnullのまま
+    }
+
+    // ローカル版では匿名ログイン不要にすることも可能だが、
+    // 既存のAuthGateフローを活かすため擬似的に扱うか、
+    // Supabaseが初期化されている場合はそのまま、されていない場合はHomeScreenへ
+    if (user == null &&
+        (SupabaseConfig.url == 'YOUR_SUPABASE_URL' ||
+            SupabaseConfig.url.isEmpty)) {
+      return const HomeScreen();
+    }
 
     if (user == null) {
       // ユーザーがいない環境（初動）

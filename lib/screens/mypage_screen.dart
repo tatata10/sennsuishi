@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../theme/app_theme.dart';
 import '../providers/progress_provider.dart';
-import '../services/supabase_service.dart';
+import '../services/local_database_service.dart';
 import '../providers/saved_questions_provider.dart';
 
 class MyPageScreen extends ConsumerWidget {
@@ -139,7 +139,7 @@ class MyPageScreen extends ConsumerWidget {
           ),
           TextButton(
             onPressed: () async {
-              await SupabaseService.instance.resetUserData();
+              await LocalDatabaseService.instance.resetUserData();
               ref.invalidate(progressProvider);
               ref.invalidate(quizHistoryProvider);
               ref.invalidate(wrongQuestionsProvider);

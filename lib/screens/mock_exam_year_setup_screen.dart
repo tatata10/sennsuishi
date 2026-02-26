@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
-import '../services/supabase_service.dart';
+import '../services/local_database_service.dart';
 import '../services/question_loader.dart';
 import '../models/question_model.dart';
 import 'mock_exam_screen.dart';
@@ -55,8 +55,8 @@ class _MockExamYearSetupScreenState extends State<MockExamYearSetupScreen> {
 
       // Supabaseから取得
       try {
-        questions =
-            await SupabaseService.instance.getQuestionsByYear(_selectedYear!);
+        questions = await LocalDatabaseService.instance
+            .getQuestionsByYear(_selectedYear!);
       } catch (_) {}
 
       // フォールバック: アセットから取得

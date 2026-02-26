@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../services/supabase_service.dart';
 import '../theme/app_theme.dart';
 import 'home_screen.dart';
 
@@ -26,13 +25,8 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // 1. 匿名サインイン (既にmainで行われているはずだが念のため)
-      if (SupabaseService.instance.currentUser == null) {
-        await SupabaseService.instance.signInAnonymously();
-      }
-
-      // 2. プロフィール作成
-      await SupabaseService.instance.createProfile(nickname);
+      // ローカル版では作成完了とする
+      // await LocalDatabaseService.instance.createProfile(nickname);
 
       if (!mounted) return;
 

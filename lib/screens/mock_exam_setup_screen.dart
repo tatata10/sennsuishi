@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
-import '../services/supabase_service.dart';
+import '../services/local_database_service.dart';
 import '../models/question_model.dart';
 import 'mock_exam_screen.dart';
 
@@ -22,8 +22,9 @@ class _MockExamSetupScreenState extends State<MockExamSetupScreen> {
   Future<void> _startExam() async {
     setState(() => _isLoading = true);
     try {
-      // Supabaseから全問ランダムで取得
-      List<Question> questions = await SupabaseService.instance.getQuestions();
+      // ローカルDBから全問ランダムで取得
+      List<Question> questions =
+          await LocalDatabaseService.instance.getQuestions();
 
       if (questions.isEmpty) {
         if (!mounted) return;

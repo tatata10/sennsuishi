@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/question_model.dart';
-import '../services/supabase_service.dart';
+import '../services/local_database_service.dart';
 import 'progress_provider.dart';
 
 // State for a single quiz session
@@ -85,20 +85,20 @@ class QuizNotifier extends StateNotifier<QuizState> {
     );
 
     try {
-      await SupabaseService.instance.saveAnswer(
+      await LocalDatabaseService.instance.saveAnswer(
         questionId: currentQuestion.id,
         category: currentQuestion.category,
         isCorrect: isCorrect,
       );
 
-      await SupabaseService.instance.toggleFavorite(
+      await LocalDatabaseService.instance.toggleFavorite(
         currentQuestion.id,
         false,
       );
 
       _notifyDbUpdate();
     } catch (e) {
-      print('Supabase error in answer: $e');
+      print('Local DB error in answer: $e');
     }
   }
 
@@ -145,7 +145,7 @@ class QuizNotifier extends StateNotifier<QuizState> {
     if (attemptedCount == 0) return;
 
     try {
-      await SupabaseService.instance.saveQuizResult(
+      await LocalDatabaseService.instance.saveQuizResult(
         totalQuestions: attemptedCount,
         score: state.score,
         category: state.questions.first.category,
@@ -153,7 +153,7 @@ class QuizNotifier extends StateNotifier<QuizState> {
 
       _notifyDbUpdate();
     } catch (e) {
-      print('Supabase error in saveCurrentResult: $e');
+      print('Local DB error in saveCurrentResult: $e');
     }
   }
 

@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/question_model.dart';
-import '../services/supabase_service.dart';
+import '../services/local_database_service.dart';
 import 'progress_provider.dart';
 
 class SavedQuestionsNotifier extends StateNotifier<AsyncValue<void>> {
@@ -22,10 +22,10 @@ class SavedQuestionsNotifier extends StateNotifier<AsyncValue<void>> {
   Future<void> toggleFavorite(Question question) async {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() async {
-      // 1. Cloudの状態を確認・更新
+      // 1. ローカルの状態を確認・更新
       final isCurrentlyFavorite =
-          await SupabaseService.instance.isFavorite(question.id);
-      await SupabaseService.instance
+          await LocalDatabaseService.instance.isFavorite(question.id);
+      await LocalDatabaseService.instance
           .toggleFavorite(question.id, !isCurrentlyFavorite);
 
       _notifyDbUpdate();
@@ -46,15 +46,15 @@ final savedQuestionsProvider =
 // Providers for fetching lists
 final wrongQuestionsProvider = FutureProvider<List<Question>>((ref) async {
   ref.watch(dbUpdateCounterProvider);
-  return await SupabaseService.instance.getWeakQuestions();
+  return await LocalDatabaseService.instance.getWeakQuestions();
 });
 
 final favoriteQuestionsProvider = FutureProvider<List<Question>>((ref) async {
   ref.watch(dbUpdateCounterProvider);
-  return await SupabaseService.instance.getFavoriteQuestions();
+  return await LocalDatabaseService.instance.getFavoriteQuestions();
 });
 
 final isFavoriteProvider = FutureProvider.family<bool, String>((ref, id) async {
   ref.watch(dbUpdateCounterProvider);
-  return await SupabaseService.instance.isFavorite(id);
+  return await LocalDatabaseService.instance.isFavorite(id);
 });

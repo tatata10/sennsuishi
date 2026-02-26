@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../services/supabase_service.dart';
+import '../services/local_database_service.dart';
 import 'progress_provider.dart';
 
 class CategoryStats {
@@ -22,12 +22,12 @@ final categoryAnalysisProvider =
     FutureProvider<List<CategoryStats>>((ref) async {
   ref.watch(dbUpdateCounterProvider);
 
-  // Cloudから分析データを取得
-  final analysis = await SupabaseService.instance.getCategoryAnalysis();
+  // 内部DBから分析データを取得
+  final analysis = await LocalDatabaseService.instance.getCategoryAnalysis();
 
-  // Cloudから弱点統計を取得
+  // 内部DBから弱点統計を取得
   final Map<String, int> weaknesses =
-      await SupabaseService.instance.getWeaknessStats();
+      await LocalDatabaseService.instance.getWeaknessStats();
 
   return analysis.map((row) {
     final cat = row['category'] as String;
@@ -44,7 +44,7 @@ final categoryAnalysisProvider =
 final recentScoresProvider = FutureProvider<List<double>>((ref) async {
   ref.watch(dbUpdateCounterProvider);
 
-  final history = await SupabaseService.instance.getQuizHistory();
+  final history = await LocalDatabaseService.instance.getQuizHistory();
   return history
       .map((h) => (h['score'] as int) / (h['total_questions'] as int))
       .toList()

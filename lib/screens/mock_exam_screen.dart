@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/question_model.dart';
-import '../services/supabase_service.dart';
+import '../services/local_database_service.dart';
 import '../providers/progress_provider.dart';
 import '../theme/app_theme.dart';
 
@@ -105,7 +105,7 @@ class _MockExamScreenState extends ConsumerState<MockExamScreen> {
     // 結果を保存
     try {
       if (totalAnswered > 0) {
-        await SupabaseService.instance.saveQuizResult(
+        await LocalDatabaseService.instance.saveQuizResult(
           totalQuestions: widget.questions.length,
           score: score,
           category: '模擬試験',
@@ -114,7 +114,7 @@ class _MockExamScreenState extends ConsumerState<MockExamScreen> {
         for (int i = 0; i < widget.questions.length; i++) {
           final answered = _answers[i];
           if (answered != null) {
-            await SupabaseService.instance.saveAnswer(
+            await LocalDatabaseService.instance.saveAnswer(
               questionId: widget.questions[i].id,
               category: widget.questions[i].category,
               isCorrect: answered == widget.questions[i].answerIndex,
