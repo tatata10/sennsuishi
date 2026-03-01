@@ -32,7 +32,7 @@ class HistoryScreen extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildSummaryHeader(history),
+                  _buildSummaryHeader(history, ref),
                   const Padding(
                     padding: EdgeInsets.fromLTRB(20, 24, 20, 12),
                     child: Text(
@@ -95,7 +95,8 @@ class HistoryScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildSummaryHeader(List<Map<String, dynamic>> history) {
+  Widget _buildSummaryHeader(
+      List<Map<String, dynamic>> history, WidgetRef ref) {
     int total = history.length;
     double avg = total == 0
         ? 0
@@ -108,10 +109,12 @@ class HistoryScreen extends ConsumerWidget {
             (e) => (e['score'] as int) / (e['total_questions'] as int) >= 0.6)
         .length;
 
+    final streakAsync = ref.watch(streakProvider);
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0),
       child: Container(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 20),
         decoration: BoxDecoration(
           color: AppTheme.navy,
           borderRadius: BorderRadius.circular(20),
@@ -128,8 +131,16 @@ class HistoryScreen extends ConsumerWidget {
           children: [
             _buildStatItem('実施回数', '$total', Icons.assignment_outlined),
             _buildStatItem(
-                '平均正解率', '${(avg * 100).toInt()}%', Icons.analytics_outlined),
+                '平均正解', '${(avg * 100).toInt()}%', Icons.analytics_outlined),
             _buildStatItem('合格回数', '$passCount', Icons.check_circle_outline),
+            _buildStatItem(
+                '継続日数',
+                streakAsync.when(
+                  data: (s) => '$s日',
+                  loading: () => '-',
+                  error: (_, __) => '0',
+                ),
+                Icons.calendar_month),
           ],
         ),
       ),

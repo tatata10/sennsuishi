@@ -61,16 +61,13 @@ class MyPageScreen extends ConsumerWidget {
                       const Divider(height: 30),
                       _buildStatRow(
                         '学習記録',
-                        '12日間継続中',
+                        ref.watch(streakProvider).when(
+                              data: (s) => '$s日間継続中',
+                              loading: () => '...日間継続中',
+                              error: (_, __) => '0日間継続中',
+                            ),
                         Icons.calendar_month,
                         Colors.orange,
-                      ),
-                      const Divider(height: 30),
-                      _buildStatRow(
-                        '獲得バッジ',
-                        '3個',
-                        Icons.emoji_events,
-                        Colors.amber,
                       ),
                     ],
                   ),
@@ -78,8 +75,6 @@ class MyPageScreen extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 20),
-            _buildListTile(
-                context, '学習リマインダー', Icons.notifications_none, () {}),
             _buildListTile(context, 'データのリセット', Icons.refresh, () {
               // Show confirmation dialog
               _showResetDialog(context, ref);
@@ -116,12 +111,12 @@ class MyPageScreen extends ConsumerWidget {
 
   Widget _buildListTile(
       BuildContext context, String title, IconData icon, VoidCallback onTap,
-      {Color? textColor}) {
+      {Color? textColor, Widget? trailing}) {
     return ListTile(
       leading: Icon(icon, color: textColor ?? Colors.grey[700]),
       title: Text(title,
           style: TextStyle(color: textColor, fontWeight: FontWeight.w500)),
-      trailing: const Icon(Icons.chevron_right),
+      trailing: trailing ?? const Icon(Icons.chevron_right),
       onTap: onTap,
     );
   }

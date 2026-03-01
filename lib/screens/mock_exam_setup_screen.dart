@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../services/local_database_service.dart';
 import '../models/question_model.dart';
+import '../services/ad_helper.dart';
 import 'mock_exam_screen.dart';
 
 class MockExamSetupScreen extends StatefulWidget {
@@ -41,15 +42,21 @@ class _MockExamSetupScreenState extends State<MockExamSetupScreen> {
       }
 
       if (!mounted) return;
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => MockExamScreen(
-            questions: questions,
-            title: '模擬試験（$_selectedQuestionCount問・$_selectedTimeLimitMinutes分）',
-            timeLimitSeconds: _selectedTimeLimitMinutes * 60,
+
+      // 広告を表示してから遷移
+      AdHelper.showInterstitialAd(onAdClosed: () {
+        if (!mounted) return;
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => MockExamScreen(
+              questions: questions,
+              title:
+                  '模擬試験（$_selectedQuestionCount問・$_selectedTimeLimitMinutes分）',
+              timeLimitSeconds: _selectedTimeLimitMinutes * 60,
+            ),
           ),
-        ),
-      );
+        );
+      });
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

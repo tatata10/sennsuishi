@@ -4,6 +4,7 @@ import '../services/local_database_service.dart';
 import '../services/question_loader.dart';
 import '../models/question_model.dart';
 import 'mock_exam_screen.dart';
+import '../services/ad_helper.dart';
 
 /// 模擬試験モード：年度を選んで過去問40問を時間制限付きで解く
 class MockExamYearSetupScreen extends StatefulWidget {
@@ -75,15 +76,20 @@ class _MockExamYearSetupScreenState extends State<MockExamYearSetupScreen> {
       final title = _examTitles[_selectedYear!] ?? '模擬試験';
 
       if (!mounted) return;
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => MockExamScreen(
-            questions: questions,
-            title: '模擬試験 - $title',
-            timeLimitSeconds: _selectedTimeLimitMinutes * 60,
+
+      // 広告を表示してから遷移
+      AdHelper.showInterstitialAd(onAdClosed: () {
+        if (!mounted) return;
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => MockExamScreen(
+              questions: questions,
+              title: '模擬試験 - $title',
+              timeLimitSeconds: _selectedTimeLimitMinutes * 60,
+            ),
           ),
-        ),
-      );
+        );
+      });
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context)

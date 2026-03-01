@@ -5,6 +5,7 @@ import '../theme/app_theme.dart';
 import 'home_screen.dart';
 import '../providers/quiz_provider.dart';
 import '../providers/progress_provider.dart';
+import '../services/ad_helper.dart';
 
 class MockExamResultScreen extends ConsumerWidget {
   final List<Question> questions;
@@ -191,10 +192,15 @@ class MockExamResultScreen extends ConsumerWidget {
                       ref.invalidate(quizProvider);
                       ref.invalidate(progressProvider);
                       ref.invalidate(quizHistoryProvider);
-                      Navigator.of(context).pushAndRemoveUntil(
-                        MaterialPageRoute(builder: (_) => const HomeScreen()),
-                        (route) => false,
-                      );
+
+                      // 広告を表示してからホームに戻る
+                      AdHelper.showInterstitialAd(onAdClosed: () {
+                        if (!context.mounted) return;
+                        Navigator.of(context).pushAndRemoveUntil(
+                          MaterialPageRoute(builder: (_) => const HomeScreen()),
+                          (route) => false,
+                        );
+                      });
                     },
                     icon: const Icon(Icons.home),
                     label: const Text('ホームに戻る'),

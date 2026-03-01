@@ -88,9 +88,9 @@ class LocalDatabaseService {
         {
           'id': q.id,
           'category': q.category,
-          'text': q.text,
+          'text': q.question,
           'options': jsonEncode(q.options),
-          'correct_answer_index': q.correctAnswerIndex,
+          'correct_answer_index': q.answerIndex,
           'explanation': q.explanation,
           'image_url': q.imageUrl,
           'exam_id': q.id.split('_').first,
@@ -131,9 +131,9 @@ class LocalDatabaseService {
     return Question(
       id: map['id'] as String,
       category: map['category'] as String,
-      text: map['text'] as String,
+      question: map['text'] as String,
       options: List<String>.from(jsonDecode(map['options'] as String)),
-      correctAnswerIndex: map['correct_answer_index'] as int,
+      answerIndex: map['correct_answer_index'] as int,
       explanation: map['explanation'] as String,
       imageUrl: map['image_url'] as String?,
     );
@@ -280,6 +280,51 @@ class LocalDatabaseService {
       stats[category] = (stats[category] ?? 0) + 1;
     }
     return stats;
+  }
+
+  Future<int> calculateStreak() async {
+    final db = await instance.database;
+    final result = await db.query(
+      'quiz_history',
+      columns: ['created_at'],
+      orderBy: 'created_at DESC',
+    );
+
+    if (result.isEmpty) return 0;
+
+    final Set<String> uniqueDays = result
+        .map((row) => (row['created_at'] as String).substring(0, 10))
+        .toSet();
+
+    if (uniqueDays.isEmpty) return 0;
+
+    final List<DateTime> sortedDays = uniqueDays
+        .map((day) => DateTime.parse(day))
+        .toList()
+      ..sort((a, b) => b.compareTo(a));
+
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final yesterday = today.subtract(const Duration(days: 1));
+
+    // もし最後に学習したのが今日でも昨日でもないなら、ストリークは0（または最後に学習した日が基準なら1だが、継続中としては途切れている）
+    if (sortedDays.first.isBefore(yesterday)) {
+      return 0;
+    }
+
+    int streak = 1;
+    for (int i = 0; i < sortedDays.length - 1; i++) {
+      final current = sortedDays[i];
+      final next = sortedDays[i + 1];
+
+      if (current.subtract(const Duration(days: 1)).isAtSameMomentAs(next)) {
+        streak++;
+      } else {
+        break;
+      }
+    }
+
+    return streak;
   }
 
   // --- Rewards & Unlocks ---

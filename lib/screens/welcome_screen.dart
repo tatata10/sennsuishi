@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../theme/app_theme.dart';
+import '../providers/progress_provider.dart';
 import 'home_screen.dart';
 
-class WelcomeScreen extends StatefulWidget {
+class WelcomeScreen extends ConsumerStatefulWidget {
   const WelcomeScreen({super.key});
 
   @override
-  State<WelcomeScreen> createState() => _WelcomeScreenState();
+  ConsumerState<WelcomeScreen> createState() => _WelcomeScreenState();
 }
 
-class _WelcomeScreenState extends State<WelcomeScreen> {
+class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
   final _nicknameController = TextEditingController();
   bool _isLoading = false;
 
@@ -25,12 +28,16 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // ローカル版では作成完了とする
-      // await LocalDatabaseService.instance.createProfile(nickname);
+      // 1. ローカルに保存 (SharedPreferences)
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('user_nickname', nickname);
+
+      // プロフィール状態を更新
+      ref.invalidate(profileProvider);
 
       if (!mounted) return;
 
-      // 3. ホーム画面へ
+      // 2. ホーム画面へ
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (context) => const HomeScreen()),
       );

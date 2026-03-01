@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../services/local_database_service.dart';
 
 final dbUpdateCounterProvider = StateProvider<int>((ref) => 0);
@@ -28,7 +29,16 @@ final quizHistoryProvider =
 });
 
 final profileProvider = FutureProvider<Map<String, dynamic>?>((ref) async {
-  // Local DB doesn't have profiles in this implementation yet,
-  // but we return a mock one for now.
-  return {'nickname': 'ユーザー'};
+  // SharedPreferencesからニックネームを取得
+  final prefs = await SharedPreferences.getInstance();
+  final nickname = prefs.getString('user_nickname');
+  if (nickname != null) {
+    return {'nickname': nickname};
+  }
+  return null;
+});
+
+final streakProvider = FutureProvider<int>((ref) async {
+  ref.watch(dbUpdateCounterProvider);
+  return await LocalDatabaseService.instance.calculateStreak();
 });
