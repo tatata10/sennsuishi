@@ -5,6 +5,11 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 class AdHelper {
   static String get bannerAdUnitId {
+    if (kDebugMode) {
+      return Platform.isAndroid
+          ? 'ca-app-pub-3940256099942544/6300978111'
+          : 'ca-app-pub-3940256099942544/2934735716';
+    }
     if (Platform.isAndroid) {
       return 'ca-app-pub-1262632864876102/2336908044';
     } else if (Platform.isIOS) {
@@ -15,6 +20,11 @@ class AdHelper {
   }
 
   static String get interstitialAdUnitId {
+    if (kDebugMode) {
+      return Platform.isAndroid
+          ? 'ca-app-pub-3940256099942544/1033173712'
+          : 'ca-app-pub-3940256099942544/4411468910';
+    }
     if (Platform.isAndroid) {
       return 'ca-app-pub-1262632864876102/1439923063';
     } else if (Platform.isIOS) {
@@ -25,6 +35,11 @@ class AdHelper {
   }
 
   static String get rewardedAdUnitId {
+    if (kDebugMode) {
+      return Platform.isAndroid
+          ? 'ca-app-pub-3940256099942544/5224354917'
+          : 'ca-app-pub-3940256099942544/1712485313';
+    }
     if (Platform.isAndroid) {
       return 'ca-app-pub-1262632864876102/9126841392';
     } else if (Platform.isIOS) {
