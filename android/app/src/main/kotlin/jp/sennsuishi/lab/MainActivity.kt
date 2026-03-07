@@ -1,4 +1,4 @@
-package com.example.sensuishi_app
+package jp.sennsuishi.lab
 
 import io.flutter.embedding.android.FlutterActivity
 
