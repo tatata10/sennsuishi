@@ -79,7 +79,6 @@ class MyPageScreen extends ConsumerWidget {
               // Show confirmation dialog
               _showResetDialog(context, ref);
             }, textColor: AppTheme.errorRed),
-            _buildListTile(context, 'アプリについて', Icons.info_outline, () {}),
             const SizedBox(height: 40),
             const Text(
               'Version 1.0.0',

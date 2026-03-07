@@ -114,12 +114,17 @@ class _YearSelectionScreenState extends ConsumerState<YearSelectionScreen> {
       onUserEarnedReward: (reward) async {
         // 視聴完了
         await LocalDatabaseService.instance.incrementAdViewCount('year_$id');
+        // プロバイダーを更新してUIに反映
         ref.read(dbUpdateCounterProvider.notifier).state++;
 
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('「$title」を解放しました！')),
         );
+
+        // 少し待ってから画面遷移（DBの反映を確実にするため）
+        await Future.delayed(const Duration(milliseconds: 300));
+        if (!mounted) return;
         _onYearTap(id, title, true);
       },
     );
